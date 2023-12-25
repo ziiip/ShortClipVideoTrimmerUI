@@ -48,7 +48,16 @@ class ShortClipVideoTrimmerView: UIView {
             self.updateTrimmingAreaBorderColor(color: borderColor)
         }
     }
-    
+
+    var trimmerRadius: CGFloat = 4.0 {
+        didSet {
+            if #available(iOS 11.0, *) {
+                trimView.layer.cornerRadius = self.trimmerRadius
+                self.updateHandlerRadiuses(trimmerRadius)
+            }
+        }
+    }
+
     var handlerColor : UIColor = .blue {
         didSet {
             self.updateHandlerColor(color: handlerColor)
@@ -94,7 +103,11 @@ class ShortClipVideoTrimmerView: UIView {
             updateTrimmingOutsideMaskVisibility(alpha: maskAlpha)
         }
     }
+
     var minimumDistanceBetweenHandler : CGFloat =  3.0
+    var horizonInset: CGFloat = 0.0
+
+
     // delegate
     weak var delegate : ShortClipVideoTrimmerViewDelegate?
    
@@ -105,7 +118,13 @@ class ShortClipVideoTrimmerView: UIView {
         super.init(frame: frame)
         setupViews()
     }
-    
+
+    public init(frame: CGRect, horizonInset: CGFloat) {
+        super.init(frame: frame)
+        self.horizonInset = horizonInset
+        setupViews()
+    }
+
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupViews()
@@ -137,6 +156,7 @@ class ShortClipVideoTrimmerView: UIView {
         
         trimView.translatesAutoresizingMaskIntoConstraints = false
         trimView.isUserInteractionEnabled = false
+        trimView.clipsToBounds = true
         addSubview(trimView)
         trimViewLeftConstraint = trimView.leftAnchor.constraint(equalTo: leftAnchor)
         trimViewRightConstraint = trimView.rightAnchor.constraint(equalTo: rightAnchor)
@@ -210,7 +230,7 @@ class ShortClipVideoTrimmerView: UIView {
         leftMaskView.translatesAutoresizingMaskIntoConstraints = false
         insertSubview(leftMaskView, belowSubview: leftHandleView)
         
-        leftMaskView.leftAnchor.constraint(equalTo: leftAnchor, constant: 0).isActive = true
+        leftMaskView.leftAnchor.constraint(equalTo: leftAnchor, constant: -self.horizonInset).isActive = true
         leftMaskView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
         leftMaskView.topAnchor.constraint(equalTo: topAnchor, constant:0.0).isActive = true
         leftMaskView.rightAnchor.constraint(equalTo: leftHandleView.rightAnchor, constant: 0).isActive = true
@@ -219,7 +239,7 @@ class ShortClipVideoTrimmerView: UIView {
         rightMaskView.translatesAutoresizingMaskIntoConstraints = false
         insertSubview(rightMaskView, belowSubview: rightHandleView)
         
-        rightMaskView.rightAnchor.constraint(equalTo: rightAnchor, constant: 0).isActive = true
+        rightMaskView.rightAnchor.constraint(equalTo: rightAnchor, constant: self.horizonInset).isActive = true
         rightMaskView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
         rightMaskView.topAnchor.constraint(equalTo: topAnchor, constant: 0.0).isActive = true
         rightMaskView.leftAnchor.constraint(equalTo: rightHandleView.leftAnchor, constant: 0).isActive = true
@@ -251,6 +271,9 @@ class ShortClipVideoTrimmerView: UIView {
 }
 
 extension ShortClipVideoTrimmerView {
+    func updateMinimumTrimScale(_ scale: CGFloat) {
+        self.minimumDistanceBetweenHandler = max(.zero, self.frame.width * scale - self.handlerWidth * 2)
+    }
     func updateTrimmingOutsidebackgroundColor(color : UIColor) {
         leftMaskView.backgroundColor = color
         rightMaskView.backgroundColor = color
@@ -269,7 +292,22 @@ extension ShortClipVideoTrimmerView {
         leftHandleView.backgroundColor = color
         rightHandleView.backgroundColor = color
     }
-    
+
+    @available(iOS 11.0, *)
+    func updateHandlerRadiuses(_ radius: CGFloat) {
+        leftHandleView.layer.cornerRadius = radius
+        leftHandleView.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMinXMinYCorner]
+        if #available(iOS 13.0, *) {
+            leftHandleView.layer.cornerCurve = .continuous
+        }
+
+        rightHandleView.layer.cornerRadius = radius
+        rightHandleView.layer.maskedCorners = [.layerMaxXMaxYCorner, .layerMaxXMinYCorner]
+        if #available(iOS 13.0, *) {
+            rightHandleView.layer.cornerCurve = .continuous
+        }
+    }
+
     private func updateTrimmingAreaBorderColor(color : UIColor) {
         trimView.layer.borderColor = color.cgColor
     }
@@ -317,7 +355,7 @@ extension ShortClipVideoTrimmerView {
     }
     
 }
-
+//
 extension ShortClipVideoTrimmerView {
     @objc func handlePanGesture(_ gestureRecognizer: UIPanGestureRecognizer) {
         guard let view = gestureRecognizer.view, let superView = gestureRecognizer.view?.superview else { return }

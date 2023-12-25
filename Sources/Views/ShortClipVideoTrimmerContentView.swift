@@ -22,12 +22,16 @@ public protocol ShortClipVideoTrimmerContentViewDelegate : AnyObject {
 @IBDesignable
 public  class ShortClipVideoTrimmerContentView: UIView {
     
+    private var horizonInset: CGFloat = 0.0
+    private var trimmerScale: CGFloat = 1.0
     private var loadingImage : UIImage?
     private let identifier = "identifier"
     private var presenter : ShortClipThumbnailsPresenter?
     private var timeScale : CMTimeScale = 600
     private var videoLength : CGFloat = 0.0
+    private var validMinTrimmingDuration : CGFloat = 0.0
     private var validMaxTrimmingDuration : CGFloat = 0.0
+    private var clampCell: Bool = false
     var delayBetweenFrames : CGFloat = 0.0
     
     private var trimmerView : ShortClipVideoTrimmerView?
@@ -83,7 +87,13 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         super.init(coder: coder)
         setupViews()
     }
-    
+
+    public init(frame: CGRect, horizonInset: CGFloat = 0.0) {
+        super.init(frame: frame)
+        self.horizonInset = horizonInset
+        setupViews()
+    }
+
     private func setupViews() {
         loadingImage = UIImage(named: "loader.jpeg", in: Bundle(for: type(of: self)), compatibleWith: nil)
         clipsToBounds = false
@@ -95,7 +105,7 @@ public  class ShortClipVideoTrimmerContentView: UIView {
             collectionView.bottomAnchor.constraint(equalTo: bottomAnchor),
             collectionView.rightAnchor.constraint(equalTo: rightAnchor)
         ])
-        trimmerView = ShortClipVideoTrimmerView(frame: bounds)
+        trimmerView = ShortClipVideoTrimmerView(frame: bounds, horizonInset: self.horizonInset)
         guard let trimmerView = trimmerView else {
             return
         }
@@ -103,6 +113,14 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         trimmerView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         trimmerView.delegate = self
         addSubview(trimmerView)
+
+        trimmerView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            trimmerView.topAnchor.constraint(equalTo: topAnchor),
+            trimmerView.leftAnchor.constraint(equalTo: leftAnchor, constant: self.horizonInset),
+            trimmerView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            trimmerView.rightAnchor.constraint(equalTo: rightAnchor, constant: -self.horizonInset)
+        ])
         layoutIfNeeded()
     }
     
@@ -111,32 +129,43 @@ public  class ShortClipVideoTrimmerContentView: UIView {
     ///     - asset : A valid AVAsset
     ///     - maxTrimmingDuration : Maximum trimming duration. That means if you set maxTrimmingDuration = 10 then you can handle at most 10 seconds of consecutive frames from any part of the video. Default is 10
     ///     - numberOfFramesPerCycle : total number of frames can be shown in each circle. Default is 7
-    public func startOperation(asset : AVAsset, maxTrimmingDuration : Double = 10.0, numberOfFramesPerCycle : Int = 7) {
+    public func startOperation(asset : AVAsset, minTrimmingDuration: Double = 0.0, maxTrimmingDuration : Double = 10.0, numberOfFramesPerCycle : Int = 7) {
         presenter = ShortClipThumbnailsPresenter(asset: asset, numberOfFramesPerCycle: numberOfFramesPerCycle)
         presenter?.delegate = self
         presenter?.removeAllFrames()
         videoLength = asset.duration.seconds
-        resetData(maxTrimmingDuration: maxTrimmingDuration)
+        resetData(minTrimmingDuration: minTrimmingDuration, maxTrimmingDuration: maxTrimmingDuration)
     }
     
-    func resetData(maxTrimmingDuration : Double) {
+    func resetData(minTrimmingDuration : Double, maxTrimmingDuration : Double) {
         presenter?.cancelThumnailsGenerating()
         guard let presenter = presenter else {
             return
         }
+
+        let collectionWidth = self.collectionView.bounds.width
+        let scaling = (self.trimmerView?.frame.width ?? collectionWidth) / collectionWidth
+        self.trimmerScale = scaling
+
         resetCollectionViewContentOffSet()
         trimmingStartTime = 0.0
-        rightHandleLeadingConstraint = trimmerView?.bounds.width ?? 0.0
-        leftHandleLeadingConstraint = 0.0
+        rightHandleLeadingConstraint = (trimmerView?.bounds.width ?? 0.0) / self.trimmerScale
+        leftHandleLeadingConstraint = 0.0 / self.trimmerScale
+        validMinTrimmingDuration = max(.zero, min(minTrimmingDuration, videoLength))
         validMaxTrimmingDuration = min(videoLength, maxTrimmingDuration)
+        
+        trimmerView?.updateMinimumTrimScale(validMinTrimmingDuration / validMaxTrimmingDuration)
+        
         presenter.removeAllFrames()
         trimmerView?.resetHandleViewPosition()
         self.delayBetweenFrames = presenter.calculateDelayBetweenFrames(startTime: Double(trimmingStartTime), maxTrimmingDuration: Double(validMaxTrimmingDuration), numberOfFramesPerCycle: presenter.numberOfFramesPerCycle)
         presenter.setupData(delayBetweenFrames: delayBetweenFrames)
         trimmingFinishTime = validMaxTrimmingDuration
         nextDestination = min(trimmingFinishTime * 3, videoLength)
-        presenter.calculateNumberOfExpectedThumbnails(videoLength: videoLength)
+        presenter.calculateNumberOfExpectedThumbnails(videoLength: videoLength * self.trimmerScale)
         presenter.addFrames(startTime: trimmingStartTime, finishTime: trimmingFinishTime)
+
+        self.clampCell = validMaxTrimmingDuration >= videoLength
     }
     
     private func collectionViewLayout()-> UICollectionViewLayout {
@@ -157,12 +186,13 @@ public  class ShortClipVideoTrimmerContentView: UIView {
     
     internal func resetCollectionViewContentOffSet() {
         self.collectionView.contentOffset.x = 0.0
-       
     }
     
     func updateSecondsForHandle(leadingConstraint : CGFloat)-> CGFloat {
         let leadingDistanceAsSeconds = self.getWidthToSeconds(width: leadingConstraint, delayBetweenFrames: delayBetweenFrames)
-        let scrollingContentOffsetAsSeconds = self.getWidthToSeconds(width: collectionView.contentOffset.x, delayBetweenFrames: delayBetweenFrames)
+
+        let offsetX = collectionView.contentOffset.x
+        let scrollingContentOffsetAsSeconds = self.getWidthToSeconds(width: offsetX * self.trimmerScale , delayBetweenFrames: delayBetweenFrames)
         return leadingDistanceAsSeconds + scrollingContentOffsetAsSeconds
     }
     
@@ -237,7 +267,15 @@ extension ShortClipVideoTrimmerContentView : UICollectionViewDelegateFlowLayout 
         guard let presenter = presenter else {
             return CGSize(width: 50, height: collectionView.bounds.height)
         }
-        return CGSize(width: self.collectionView.bounds.width / CGFloat(presenter.numberOfFramesPerCycle), height: collectionView.bounds.height)
+        let trimerWidth = self.trimmerView?.frame.width ?? self.collectionView.bounds.width
+        let perFrameWidth = self.collectionView.bounds.width / CGFloat(presenter.numberOfFramesPerCycle)
+        var width = perFrameWidth
+        if self.clampCell && perFrameWidth * CGFloat(indexPath.row + 1) > trimerWidth {
+            width = trimerWidth.truncatingRemainder(dividingBy: perFrameWidth)
+        }
+
+        let size = CGSize(width: width, height: collectionView.bounds.height)
+        return size
     }
     
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
@@ -247,6 +285,10 @@ extension ShortClipVideoTrimmerContentView : UICollectionViewDelegateFlowLayout 
     public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
         return 0
     }
+
+    public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
+        return UIEdgeInsets(top: 0, left: self.horizonInset, bottom: 0, right: self.horizonInset)
+    }
 }
 
 extension ShortClipVideoTrimmerContentView : ShortClipVideoTrimmerViewDelegate {
@@ -255,7 +297,7 @@ extension ShortClipVideoTrimmerContentView : ShortClipVideoTrimmerViewDelegate {
         guard let leadingConstraint = leadingConstraint else {
             return
         }
-        self.leftHandleLeadingConstraint = leadingConstraint
+        self.leftHandleLeadingConstraint = leadingConstraint / self.trimmerScale
         delegate?.didMoveToFinishPosition(startTime: trimmingStartTime, finishTime: trimmingFinishTime)
     }
     
@@ -263,7 +305,7 @@ extension ShortClipVideoTrimmerContentView : ShortClipVideoTrimmerViewDelegate {
         guard let leadingConstraint = leadingConstraint else {
             return
         }
-        self.rightHandleLeadingConstraint = leadingConstraint
+        self.rightHandleLeadingConstraint = leadingConstraint / self.trimmerScale
         delegate?.didMoveToFinishPosition(startTime: trimmingStartTime, finishTime: trimmingFinishTime)
         
     }
@@ -311,8 +353,11 @@ extension ShortClipVideoTrimmerContentView {
     public func updatePositionBarWidth(width : CGFloat) {
         trimmerView?.positionBarWidth = width
     }
-    
-  
+
+    public func updateTrimmerRadius(radius : CGFloat) {
+        trimmerView?.trimmerRadius = radius
+    }
+
     public func updateTrimmingAreaBorderWidth(width : CGFloat) {
         trimmerView?.borderWidth = width
     }

@@ -42,13 +42,29 @@ class HomePageViewController: UIViewController {
     }
     
     private func setupViews() {
-        shortClipTrimmerContentView = ShortClipVideoTrimmerContentView(frame: thumbnailsSuperView.bounds)
+        shortClipTrimmerContentView = ShortClipVideoTrimmerContentView(
+            frame: thumbnailsSuperView.bounds,
+            horizonInset: 32
+        )
         guard let shortClipTrimmerContentView = shortClipTrimmerContentView else {
             return
         }
         shortClipTrimmerContentView.delegate = self
         shortClipTrimmerContentView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         thumbnailsSuperView.addSubview(shortClipTrimmerContentView)
+		
+		let trimBoxColor = UIColor.black
+		shortClipTrimmerContentView.updateHandlerWidth(width : 16)
+		shortClipTrimmerContentView.updateKnobWidth(width : 2.0)
+		shortClipTrimmerContentView.updatePositionBarWidth(width : 4.0)
+        shortClipTrimmerContentView.updateTrimmerRadius(radius: 10.0)
+		shortClipTrimmerContentView.updateTrimmingAreaBorderWidth(width : 6.0)
+		shortClipTrimmerContentView.handlerColor(color : trimBoxColor)
+		shortClipTrimmerContentView.updateTrimmingAreaBorderColor(color : trimBoxColor)
+		shortClipTrimmerContentView.updateKnobColor(color : UIColor.white)
+		shortClipTrimmerContentView.updatePositionBarColor(color : UIColor.white)
+		shortClipTrimmerContentView.updateTrimmingOutsideBackgroundColor(color : UIColor.white)
+		shortClipTrimmerContentView.updateTrimmingOutsideMaskAlpha(alpha : 0.5)
     }
     
     private func setupPlayer() {
@@ -57,7 +73,12 @@ class HomePageViewController: UIViewController {
             return
         }
         let asset = AVAsset(url: videoURL)
-        shortClipTrimmerContentView?.startOperation(asset: asset, maxTrimmingDuration: maxTrimmingDuration, numberOfFramesPerCycle: numberOfFramesPerCycle)
+        shortClipTrimmerContentView?.startOperation(
+            asset: asset,
+            minTrimmingDuration: 5,
+            maxTrimmingDuration: 30,
+            numberOfFramesPerCycle: numberOfFramesPerCycle
+        )
         let playerItem = AVPlayerItem(asset: asset)
         videoPlayer = AVPlayer(playerItem: playerItem)
         guard let videoPlayer = videoPlayer else {

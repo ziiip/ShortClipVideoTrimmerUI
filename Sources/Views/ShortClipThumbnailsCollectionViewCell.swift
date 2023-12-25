@@ -33,8 +33,10 @@ class ShortClipThumbnailsCollectionViewCell: UICollectionViewCell {
             imageView.topAnchor.constraint(equalTo: topAnchor),
             imageView.leftAnchor.constraint(equalTo: leftAnchor),
             imageView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            imageView.rightAnchor.constraint(equalTo: rightAnchor)
+//            imageView.rightAnchor.constraint(equalTo: rightAnchor)
+            imageView.widthAnchor.constraint(equalTo: imageView.heightAnchor)
         ])
+        self.clipsToBounds = true
     }
     
     override class func awakeFromNib() {
