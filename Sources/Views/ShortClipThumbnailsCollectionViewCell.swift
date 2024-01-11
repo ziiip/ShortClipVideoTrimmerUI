@@ -13,7 +13,7 @@ class ShortClipThumbnailsCollectionViewCell: UICollectionViewCell {
         let imageView = UIImageView()
         imageView.contentMode = .scaleToFill
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.backgroundColor = .purple
+//        imageView.backgroundColor = .purple
         return imageView
     }()
     

@@ -25,15 +25,18 @@ public  class ShortClipVideoTrimmerContentView: UIView {
     private var horizonInset: CGFloat = 0.0
     private var trimmerScale: CGFloat = 1.0
     private var loadingImage : UIImage?
+    private var imageContentMode : UIImageView.ContentMode = .scaleToFill
+    private var cellBgColor : UIColor = .purple
     private let identifier = "identifier"
     private var presenter : ShortClipThumbnailsPresenter?
+    private var thumbnailExpectedSize: CGSize = CGSize(width: 50, height: 50)
     private var timeScale : CMTimeScale = 600
     private var videoLength : CGFloat = 0.0
     private var validMinTrimmingDuration : CGFloat = 0.0
     private var validMaxTrimmingDuration : CGFloat = 0.0
     private var clampCell: Bool = false
     var delayBetweenFrames : CGFloat = 0.0
-    
+
     private var trimmerView : ShortClipVideoTrimmerView?
     public weak var delegate : ShortClipVideoTrimmerContentViewDelegate?
     var nextDestination : Double = 0.0
@@ -133,6 +136,7 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         presenter = ShortClipThumbnailsPresenter(asset: asset, numberOfFramesPerCycle: numberOfFramesPerCycle)
         presenter?.delegate = self
         presenter?.removeAllFrames()
+        presenter?.thumbnailExpectedSize = self.thumbnailExpectedSize
         videoLength = asset.duration.seconds
         resetData(minTrimmingDuration: minTrimmingDuration, maxTrimmingDuration: maxTrimmingDuration)
     }
@@ -251,6 +255,8 @@ extension ShortClipVideoTrimmerContentView : UICollectionViewDataSource {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: identifier, for: indexPath) as? ShortClipThumbnailsCollectionViewCell, let presenter = presenter else {
             return UICollectionViewCell()
         }
+        cell.imageView.contentMode = self.imageContentMode
+        cell.backgroundColor = self.cellBgColor
         if indexPath.item < presenter.numberOfThumbnails, let visibleFrameItem = presenter.visibleVideoFrameItemsDict[indexPath.item] {
             cell.imageView.image = visibleFrameItem.frame
         } else {
@@ -339,6 +345,18 @@ extension ShortClipVideoTrimmerContentView : ShortClipThumbnailsPresenterDelegat
 }
 
 extension ShortClipVideoTrimmerContentView {
+    public func updateLoadingImage(_ image : UIImage?) {
+        self.loadingImage = image
+    }
+    
+    public func updateImageContentMode(_ mode: UIImageView.ContentMode) {
+        self.imageContentMode = mode
+    }
+
+    public func updateCellBgColor(_ bgColor: UIColor) {
+        self.cellBgColor = bgColor
+    }
+
     /// update left and right Handler's width
     public func updateHandlerWidth(width : CGFloat) {
         trimmerView?.handlerWidth = width
@@ -384,5 +402,10 @@ extension ShortClipVideoTrimmerContentView {
     
     public func updateTrimmingOutsideMaskAlpha(alpha : CGFloat) {
         trimmerView?.maskAlpha = alpha
+    }
+
+    public func configThumbnailSize(_ size: CGSize) {
+        self.thumbnailExpectedSize = size
+        presenter?.thumbnailExpectedSize = size
     }
 }

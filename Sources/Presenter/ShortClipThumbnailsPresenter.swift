@@ -28,6 +28,7 @@ protocol ShortClipThumbnailsPresenterDelegate : AnyObject {
 class ShortClipThumbnailsPresenter {
     var visibleVideoFrameItemsDict = [Int : ShortClipVisibleVideoFrameItem]()
     var numberOfThumbnails : Int = 0
+    var thumbnailExpectedSize : CGSize = CGSize(width: 50, height: 50)
     var videoLength : CGFloat = 0.0
     let timeScale : CMTimeScale = 600
     var asset : AVAsset?
@@ -78,7 +79,7 @@ class ShortClipThumbnailsPresenter {
         guard startTime < finishTime else {
             return
         }
-        var timesForThumbnail = getTimesForThumnails(startTime: startTime, finishTime: finishTime, delayBetweenFrames: delayBetweenFrames)
+        var timesForThumbnail = getTimesForThumbnails(startTime: startTime, finishTime: finishTime, delayBetweenFrames: delayBetweenFrames)
         for index in stride(from: timesForThumbnail.count, to: 0, by: -1) {
             let cmTime = timesForThumbnail[index - 1].timeValue
             let seconds = cmTime.seconds
@@ -87,7 +88,7 @@ class ShortClipThumbnailsPresenter {
                 timesForThumbnail.remove(at: index - 1)
             }
         }
-        self.generateThumnails(asset: asset, timesForThumbnail: timesForThumbnail, thumbnailDimension: CGSize(width: 50, height: 50)) { [weak self] in
+      self.generateThumbnails(asset: asset, timesForThumbnail: timesForThumbnail, thumbnailDimension: self.thumbnailExpectedSize) { [weak self] in
             guard let strongSelf = self else {
                 return
             }
@@ -97,7 +98,7 @@ class ShortClipThumbnailsPresenter {
         }
     }
     
-    private func generateThumnails(asset : AVAsset?, timesForThumbnail : [NSValue], thumbnailDimension : CGSize = CGSize(width: 50, height: 50), completion : @escaping ()-> Void) {
+    private func generateThumbnails(asset : AVAsset?, timesForThumbnail : [NSValue], thumbnailDimension : CGSize = CGSize(width: 50, height: 50), completion : @escaping ()-> Void) {
         guard let asset = asset else {
             return
         }
@@ -158,7 +159,7 @@ class ShortClipThumbnailsPresenter {
         }
     }
     
-    func getTimesForThumnails(startTime : Double, finishTime : Double, delayBetweenFrames delay : Double)-> [NSValue] {
+    func getTimesForThumbnails(startTime : Double, finishTime : Double, delayBetweenFrames delay : Double)-> [NSValue] {
         var timesForThumbnail = [NSValue]()
         var currentFrameTime = TimeInterval(startTime)
         var frameCount = 0;
