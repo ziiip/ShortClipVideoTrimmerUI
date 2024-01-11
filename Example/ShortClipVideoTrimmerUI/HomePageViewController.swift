@@ -178,6 +178,10 @@ class HomePageViewController: UIViewController {
 
 extension HomePageViewController : ShortClipVideoTrimmerContentViewDelegate {
     func didMoveToFinishPosition(startTime: CGFloat, finishTime: CGFloat) {
+        guard let panningTarget = shortClipTrimmerContentView?.panningTarget,
+              case .none = panningTarget else {
+            return
+        }
         seekToTime(CMTime(seconds: startTime, preferredTimescale: 600))
         updateTimeLabel()
     }
@@ -188,11 +192,27 @@ extension HomePageViewController : ShortClipVideoTrimmerContentViewDelegate {
     }
     
     func trimmingFinishTimeDidChange(trimmingFinishTime: CGFloat) {
-        guard let trimmingStartFinishTime = shortClipTrimmerContentView?.getTrimmingStartFinishTime() else {
+        guard let trimmingStartFinishTime = shortClipTrimmerContentView?.getTrimmingStartFinishTime(),
+              let panningTarget = shortClipTrimmerContentView?.panningTarget else {
             return
         }
-        seekToTime(CMTime(seconds: trimmingStartFinishTime.trimStartTime, preferredTimescale: 600))
-        updateTimeLabel()
+
+        if case .rightHandler = panningTarget {
+            seekToTime(CMTime(seconds: trimmingStartFinishTime.trimFinishTime, preferredTimescale: 600))
+            updateTimeLabel()
+        }
     }
-    
+
+
+    func panningTargetChanged(panningState: ShortClipVideoTrimmerContentViewPanningTarget) {
+        if case .none = panningState {
+            // 继续播放
+            if let trimmingStartFinishTime = shortClipTrimmerContentView?.getTrimmingStartFinishTime()  {
+                seekToTime(CMTime(seconds: trimmingStartFinishTime.trimStartTime, preferredTimescale: 600))
+                videoPlayer?.play()
+            }
+        } else {
+            videoPlayer?.pause()
+        }
+    }
 }

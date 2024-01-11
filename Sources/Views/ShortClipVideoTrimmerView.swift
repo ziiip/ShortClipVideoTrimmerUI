@@ -9,6 +9,7 @@ import UIKit
 import AVFoundation
 
 protocol ShortClipVideoTrimmerViewDelegate: AnyObject {
+    func handlerPanningStateChange(_ isLeft: Bool, _ panningState: UIGestureRecognizer.State)
     func didLeftHandleLeadingPositionChange(leadingConstraint : CGFloat?)
     func didRightHandleLeadingPositionChange(leadingConstraint : CGFloat?)
 }
@@ -265,6 +266,7 @@ class ShortClipVideoTrimmerView: UIView {
         let leftPanGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture))
         leftHandleView.addGestureRecognizer(leftPanGestureRecognizer)
         let rightPanGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture))
+        rightPanGestureRecognizer.require(toFail: leftPanGestureRecognizer)
         rightHandleView.addGestureRecognizer(rightPanGestureRecognizer)
     }
     
@@ -364,6 +366,9 @@ extension ShortClipVideoTrimmerView {
     @objc func handlePanGesture(_ gestureRecognizer: UIPanGestureRecognizer) {
         guard let view = gestureRecognizer.view, let superView = gestureRecognizer.view?.superview else { return }
         let isLeftGesture = view == leftHandleView
+        
+        self.delegate?.handlerPanningStateChange(isLeftGesture, gestureRecognizer.state)
+
         switch gestureRecognizer.state {
             
         case .began:

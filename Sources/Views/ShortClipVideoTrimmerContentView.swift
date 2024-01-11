@@ -14,9 +14,23 @@ public protocol ShortClipVideoTrimmerContentViewDelegate : AnyObject {
     
     /// This method will be fired whenever trimming start time changes
     func trimmingStartTimeDidChange(trimmingStartTime : CGFloat)
-    
+
     /// This method will be fired whenever trimming Finish time changes
     func trimmingFinishTimeDidChange(trimmingFinishTime : CGFloat)
+
+    func panningTargetChanged(panningState: ShortClipVideoTrimmerContentViewPanningTarget)
+}
+
+extension ShortClipVideoTrimmerContentViewDelegate {
+    func panningTargetChanged(panningState: ShortClipVideoTrimmerContentViewPanningTarget) { }
+}
+
+public enum ShortClipVideoTrimmerContentViewPanningTarget {
+    case none
+    case leftHandler
+    case rightHandler
+    case scroller
+    case other
 }
 
 @IBDesignable
@@ -40,6 +54,13 @@ public  class ShortClipVideoTrimmerContentView: UIView {
     private var trimmerView : ShortClipVideoTrimmerView?
     public weak var delegate : ShortClipVideoTrimmerContentViewDelegate?
     var nextDestination : Double = 0.0
+
+    public var panningTarget: ShortClipVideoTrimmerContentViewPanningTarget = .none {
+        didSet {
+            self.delegate?.panningTargetChanged(panningState: panningTarget)
+        }
+    }
+
     private var trimmingStartTime : CGFloat = 0.0 {
         didSet {
             delegate?.trimmingStartTimeDidChange(trimmingStartTime: trimmingStartTime)
@@ -298,6 +319,17 @@ extension ShortClipVideoTrimmerContentView : UICollectionViewDelegateFlowLayout 
 }
 
 extension ShortClipVideoTrimmerContentView : ShortClipVideoTrimmerViewDelegate {
+    func handlerPanningStateChange(_ isLeft: Bool, _ panningState: UIGestureRecognizer.State) {
+        var isPanning = false
+        switch panningState {
+        case .changed:
+            isPanning = true
+        default:
+            isPanning = false
+        }
+        self.panningTarget = isPanning == false ? .none : (isLeft ? .leftHandler : .rightHandler)
+    }
+    
    
     func didLeftHandleLeadingPositionChange(leadingConstraint: CGFloat?) {
         guard let leadingConstraint = leadingConstraint else {
@@ -315,7 +347,15 @@ extension ShortClipVideoTrimmerContentView : ShortClipVideoTrimmerViewDelegate {
         delegate?.didMoveToFinishPosition(startTime: trimmingStartTime, finishTime: trimmingFinishTime)
         
     }
-    
+
+    public func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        self.panningTarget = .scroller
+    }
+
+    public func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+        self.panningTarget = .none
+    }
+
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard let presenter = presenter else {
             return
@@ -329,7 +369,6 @@ extension ShortClipVideoTrimmerContentView : ShortClipVideoTrimmerViewDelegate {
         DispatchQueue.main.async {
             self.collectionView.reloadData()
         }
-        
     }
     
     func updateTrimingStartFinishTime() {
