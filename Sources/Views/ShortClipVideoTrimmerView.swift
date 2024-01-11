@@ -293,6 +293,10 @@ extension ShortClipVideoTrimmerView {
         rightHandleView.backgroundColor = color
     }
 
+    func customizingHandleView(_ customizing: (UIView, UIView) -> Void) {
+        customizing(leftHandleView, rightHandleView)
+    }
+
     @available(iOS 11.0, *)
     func updateHandlerRadiuses(_ radius: CGFloat) {
         leftHandleView.layer.cornerRadius = radius

@@ -383,7 +383,11 @@ extension ShortClipVideoTrimmerContentView {
     public func handlerColor(color : UIColor) {
         trimmerView?.handlerColor = color
     }
-    
+
+    public func customizingHandleView(_ customizing: (UIView, UIView) -> Void) {
+        trimmerView?.customizingHandleView(customizing)
+    }
+
     public func updateTrimmingAreaBorderColor(color : UIColor) {
         trimmerView?.borderColor = color
     }

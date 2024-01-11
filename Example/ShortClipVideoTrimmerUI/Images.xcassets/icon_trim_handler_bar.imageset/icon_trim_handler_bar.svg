@@ -1,0 +1,5 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" width="6" height="16"  xml:space="preserve" id="cutCanvas">
+    <rect id="cutCanvas-rectangle" stroke="none" fill="rgb(222, 222, 222)" x="0" y="0" width="2" height="16" rx="1" />
+    <rect id="cutCanvas-rectangle2" stroke="none" fill="rgb(222, 222, 222)" x="4" y="0" width="2" height="16" rx="1" />
+</svg>

@@ -54,6 +54,26 @@ class HomePageViewController: UIViewController {
         thumbnailsSuperView.addSubview(shortClipTrimmerContentView)
 		
 		let trimBoxColor = UIColor.black
+        shortClipTrimmerContentView.customizingHandleView { leftHandleView, rightHandleView in
+
+            func cleanAndAdd(_ parentView: UIView) {
+                parentView.subviews.forEach({ $0.removeFromSuperview() })
+                let image = UIImage(named: "icon_trim_handler_bar")
+                let imageView = UIImageView(image: image)
+                imageView.translatesAutoresizingMaskIntoConstraints = false
+                parentView.addSubview(imageView)
+
+                NSLayoutConstraint.activate([
+                    imageView.centerYAnchor.constraint(equalTo: parentView.centerYAnchor),
+                    imageView.centerXAnchor.constraint(equalTo: parentView.centerXAnchor),
+                    imageView.widthAnchor.constraint(equalToConstant: 6),
+                    imageView.heightAnchor.constraint(equalToConstant: 16)
+                ])
+            }
+
+            cleanAndAdd(leftHandleView)
+            cleanAndAdd(rightHandleView)
+        }
 		shortClipTrimmerContentView.updateHandlerWidth(width : 16)
 		shortClipTrimmerContentView.updateKnobWidth(width : 2.0)
 		shortClipTrimmerContentView.updatePositionBarWidth(width : 4.0)
