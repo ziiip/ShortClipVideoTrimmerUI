@@ -415,6 +415,10 @@ extension ShortClipVideoTrimmerContentView {
         trimmerView?.trimmerRadius = radius
     }
 
+    public func updateTrimmingAreaBorderEdges(edges : UIRectEdge) {
+        trimmerView?.borderEdges = edges
+    }
+
     public func updateTrimmingAreaBorderWidth(width : CGFloat) {
         trimmerView?.borderWidth = width
     }

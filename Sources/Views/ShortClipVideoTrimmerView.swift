@@ -19,6 +19,7 @@ class ShortClipVideoTrimmerView: UIView {
     
     // all SubViews
     private let trimView = UIView()
+    private let trimViewBorderView = CustomBorderView()
     private let leftHandleView = HandlerView()
     private let rightHandleView = HandlerView()
     private let positionBar = UIView()
@@ -29,6 +30,8 @@ class ShortClipVideoTrimmerView: UIView {
     // constraints
     var trimViewLeftConstraint : NSLayoutConstraint?
     var trimViewRightConstraint : NSLayoutConstraint?
+    var trimViewTopConstraint : NSLayoutConstraint?
+    var trimViewBottomConstraint : NSLayoutConstraint?
     var leftHandlerWidthConstraint : NSLayoutConstraint?
     var rightHandlerWidthConstraint: NSLayoutConstraint?
     
@@ -43,7 +46,13 @@ class ShortClipVideoTrimmerView: UIView {
             self.updateTrimmingOutsidebackgroundColor(color: outsideTrimBackgroundColor)
         }
     }
-    
+
+    var borderEdges : UIRectEdge = [.top, .bottom] {
+        didSet {
+            self.updateTrimmingAreaBorderEdges(edges: borderEdges)
+        }
+    }
+
     var borderColor : UIColor = .blue {
         didSet {
             self.updateTrimmingAreaBorderColor(color: borderColor)
@@ -53,7 +62,7 @@ class ShortClipVideoTrimmerView: UIView {
     var trimmerRadius: CGFloat = 4.0 {
         didSet {
             if #available(iOS 11.0, *) {
-                trimView.layer.cornerRadius = self.trimmerRadius
+//                trimView.layer.cornerRadius = self.trimmerRadius
                 self.updateHandlerRadiuses(trimmerRadius)
             }
         }
@@ -145,6 +154,7 @@ class ShortClipVideoTrimmerView: UIView {
         setupPositionBar()
         setupGestures()
         updateHandlerColor(color: handlerColor)
+        updateTrimmingAreaBorderEdges(edges: borderEdges)
         updateTrimmingAreaBorderColor(color: borderColor)
         updateTrimmingAreaBorderWidth(width: borderWidth)
         updateKnobColor(color: knobColor)
@@ -163,10 +173,21 @@ class ShortClipVideoTrimmerView: UIView {
         trimViewRightConstraint = trimView.rightAnchor.constraint(equalTo: rightAnchor)
         trimViewLeftConstraint?.isActive = true
         trimViewRightConstraint?.isActive = true
+        trimViewTopConstraint = trimView.topAnchor.constraint(equalTo: topAnchor)
+        trimViewBottomConstraint = trimView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        trimViewTopConstraint?.isActive = true
+        trimViewBottomConstraint?.isActive = true
+
+        trimViewBorderView.translatesAutoresizingMaskIntoConstraints = false
+        trimViewBorderView.isUserInteractionEnabled = false
+        trimView.addSubview(trimViewBorderView)
         NSLayoutConstraint.activate([
-            trimView.topAnchor.constraint(equalTo: topAnchor),
-            trimView.bottomAnchor.constraint(equalTo: bottomAnchor)
+            trimViewBorderView.topAnchor.constraint(equalTo: trimView.topAnchor),
+            trimViewBorderView.rightAnchor.constraint(equalTo: trimView.rightAnchor),
+            trimViewBorderView.bottomAnchor.constraint(equalTo: trimView.bottomAnchor),
+            trimViewBorderView.leftAnchor.constraint(equalTo: trimView.leftAnchor)
         ])
+
         trimView.layoutIfNeeded()
     }
     
@@ -185,7 +206,7 @@ class ShortClipVideoTrimmerView: UIView {
         leftHandlerWidthConstraint?.isActive = true
         NSLayoutConstraint.activate([
             leftHandleView.topAnchor.constraint(equalTo: trimView.topAnchor),
-            leftHandleView.leftAnchor.constraint(equalTo: trimView.leftAnchor, constant: 0),
+            leftHandleView.rightAnchor.constraint(equalTo: trimView.leftAnchor, constant: 0),
             leftHandleView.heightAnchor.constraint(equalTo: trimView.heightAnchor)
         ])
         
@@ -210,9 +231,9 @@ class ShortClipVideoTrimmerView: UIView {
         rightHandlerWidthConstraint = rightHandleView.widthAnchor.constraint(equalToConstant: handlerWidth)
         rightHandlerWidthConstraint?.isActive = true
         NSLayoutConstraint.activate([
-            rightHandleView.topAnchor.constraint(equalTo: topAnchor),
-            rightHandleView.rightAnchor.constraint(equalTo: trimView.rightAnchor, constant: 0),
-            rightHandleView.heightAnchor.constraint(equalTo: heightAnchor)
+            rightHandleView.topAnchor.constraint(equalTo: trimView.topAnchor),
+            rightHandleView.leftAnchor.constraint(equalTo: trimView.rightAnchor, constant: 0),
+            rightHandleView.heightAnchor.constraint(equalTo: trimView.heightAnchor)
         ])
         rightHandleKnob.translatesAutoresizingMaskIntoConstraints = false
         rightHandleView.addSubview(rightHandleKnob)
@@ -314,8 +335,12 @@ extension ShortClipVideoTrimmerView {
         }
     }
 
+    private func updateTrimmingAreaBorderEdges(edges : UIRectEdge) {
+        self.trimViewBorderView.customBorderEdges = edges
+    }
+
     private func updateTrimmingAreaBorderColor(color : UIColor) {
-        trimView.layer.borderColor = color.cgColor
+        self.trimViewBorderView.customBorderColor = color
     }
     
     private func updateKnobColor(color : UIColor) {
@@ -324,7 +349,9 @@ extension ShortClipVideoTrimmerView {
     }
     
     private func updateTrimmingAreaBorderWidth(width : CGFloat) {
-        self.trimView.layer.borderWidth = width
+        self.trimViewBorderView.customBorderWidth = width
+        self.trimViewTopConstraint?.constant = -width
+        self.trimViewBottomConstraint?.constant = width
     }
     
     private func updateHandlerWidthConstraint(width : CGFloat) {
@@ -428,5 +455,30 @@ extension ShortClipVideoTrimmerView {
         let distance = max(0, (visibleAreaWidth * timeMovingDifference) / durationOfArea)
         positionBarLeftConstraint?.constant = distance
         layoutIfNeeded()
+    }
+}
+
+extension ShortClipVideoTrimmerView {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+
+        let leftHandleView = superview?.viewWithTag(-1000)
+        let rightHandleView = superview?.viewWithTag(-2000)
+
+        func viewWithPoint(_ view: UIView?, point: CGPoint, with event: UIEvent?, viewOfPoint: UIView) -> UIView? {
+            let pointToView = viewOfPoint.convert(point, to: view)
+            guard let view = view,
+               let view = view.hitTest(pointToView, with: event) else  {
+                return nil
+            }
+            return view
+        }
+
+        if let view = viewWithPoint(leftHandleView, point: point, with: event, viewOfPoint: self) {
+            return view
+        } else if let view = viewWithPoint(rightHandleView, point: point, with: event, viewOfPoint: self) {
+            return view
+        }
+
+        return super.hitTest(point, with: event)
     }
 }
