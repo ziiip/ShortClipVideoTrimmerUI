@@ -295,7 +295,7 @@ class ShortClipVideoTrimmerView: UIView {
 
 extension ShortClipVideoTrimmerView {
     func updateMinimumTrimScale(_ scale: CGFloat) {
-        self.minimumDistanceBetweenHandler = max(.zero, self.frame.width * scale - self.handlerWidth * 2)
+        self.minimumDistanceBetweenHandler = max(.zero, self.frame.width * scale)
     }
     func updateTrimmingOutsidebackgroundColor(color : UIColor) {
         leftMaskView.backgroundColor = color
@@ -421,7 +421,7 @@ extension ShortClipVideoTrimmerView {
     }
     
     private func updateLeftConstraint(with translation: CGPoint) {
-        let maxConstraint = max(rightHandleView.frame.origin.x - handlerWidth - minimumDistanceBetweenHandler, handlerWidth)
+        let maxConstraint = max(rightHandleView.frame.origin.x - minimumDistanceBetweenHandler, 0)
         let newConstraint = min(max(0, currentTrimLeftConstraintValue + translation.x), maxConstraint)
         trimViewLeftConstraint?.constant = newConstraint
         delegate?.didLeftHandleLeadingPositionChange(leadingConstraint: newConstraint)
@@ -430,7 +430,7 @@ extension ShortClipVideoTrimmerView {
     private func updateRightConstraint(with translation: CGPoint) {
         let prevRightConstraint = trimViewRightConstraint?.constant
         var leadingConstraint = rightHandleView.frame.origin.x
-        let maxConstraint = min(0, -(frame.width - leftHandleView.frame.origin.x - (2 * handlerWidth) - minimumDistanceBetweenHandler))
+        let maxConstraint = min(0, -(frame.width - leftHandleView.frame.origin.x - (1 * handlerWidth) - minimumDistanceBetweenHandler))
         let newConstraint = max(min(0,currentTrimRightConstraintValue + translation.x), maxConstraint)
         trimViewRightConstraint?.constant = newConstraint //+ handleWidth
         if let prevRightConstraint = prevRightConstraint {
