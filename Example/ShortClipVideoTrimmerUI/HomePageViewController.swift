@@ -18,6 +18,11 @@ class HomePageViewController: UIViewController {
     @IBOutlet weak var thumbnailsSuperView: UIView!
     @IBOutlet weak var trimmingTimeLabel: UILabel!
     @IBOutlet weak var videoPlayerView: UIView!
+
+    @IBOutlet weak var rangeStartTextField: UITextField!
+    @IBOutlet weak var rangeEndTextField: UITextField!
+    @IBOutlet weak var changeRangeBtn: UIButton!
+
     var shortClipTrimmerContentView : ShortClipVideoTrimmerContentView?
     var videoPlayer : AVPlayer?
     var isFirstTimeLoaded = true
@@ -44,7 +49,7 @@ class HomePageViewController: UIViewController {
     private func setupViews() {
         shortClipTrimmerContentView = ShortClipVideoTrimmerContentView(
             frame: thumbnailsSuperView.bounds,
-            horizonInset: 32
+            horizonInset: 60
         )
         guard let shortClipTrimmerContentView = shortClipTrimmerContentView else {
             return
@@ -54,6 +59,9 @@ class HomePageViewController: UIViewController {
         thumbnailsSuperView.addSubview(shortClipTrimmerContentView)
 		
 		let trimBoxColor = UIColor.black
+        shortClipTrimmerContentView.updateLoadingImage(UIImage(color: UIColor.clear, size: CGSize(width: 1, height: 1)))
+        shortClipTrimmerContentView.updateImageContentMode(.scaleAspectFill)
+        shortClipTrimmerContentView.updateCellBgColor(.black.withAlphaComponent(0.15))
         shortClipTrimmerContentView.customizingHandleView { leftHandleView, rightHandleView in
 
             func cleanAndAdd(_ parentView: UIView) {
@@ -74,13 +82,14 @@ class HomePageViewController: UIViewController {
             cleanAndAdd(leftHandleView)
             cleanAndAdd(rightHandleView)
         }
+
 		shortClipTrimmerContentView.updateHandlerWidth(width : 16)
 		shortClipTrimmerContentView.updateKnobWidth(width : 2.0)
 		shortClipTrimmerContentView.updatePositionBarWidth(width : 4.0)
         shortClipTrimmerContentView.updateTrimmerRadius(radius: 10.0)
         shortClipTrimmerContentView.updateTrimmingAreaBorderEdges(edges: [.top, .bottom])
 		shortClipTrimmerContentView.updateTrimmingAreaBorderWidth(width : 6.0)
-		shortClipTrimmerContentView.updateTrimmingAreaBorderColor(color : trimBoxColor)
+        shortClipTrimmerContentView.updateTrimmingAreaBorderColor(color : trimBoxColor)
         shortClipTrimmerContentView.handlerColor(color : trimBoxColor)
 		shortClipTrimmerContentView.updateKnobColor(color : UIColor.white)
 		shortClipTrimmerContentView.updatePositionBarColor(color : UIColor.white)
@@ -96,7 +105,7 @@ class HomePageViewController: UIViewController {
         let asset = AVAsset(url: videoURL)
         shortClipTrimmerContentView?.startOperation(
             asset: asset,
-            minTrimmingDuration: 5,
+            minTrimmingDuration: 3,
             maxTrimmingDuration: 30,
             numberOfFramesPerCycle: numberOfFramesPerCycle
         )
@@ -164,7 +173,11 @@ class HomePageViewController: UIViewController {
         }
         let trimmingStartTime = trimmingStartFinishTime.trimStartTime
         let trimmingFinishTime = trimmingStartFinishTime.trimFinishTime
-        trimmingTimeLabel.text = String(format: "%.2f : %.2fs", trimmingStartTime,trimmingFinishTime)
+        trimmingTimeLabel.text = String(
+            format: "%.2f : %.2fs",
+            trimmingStartTime.rounded(numberOfDecimalPlaces: 1, rule: .toNearestOrAwayFromZero),
+            trimmingFinishTime.rounded(numberOfDecimalPlaces: 1, rule: .toNearestOrAwayFromZero)
+        )
     }
     
     private func playVideo() {
@@ -174,7 +187,18 @@ class HomePageViewController: UIViewController {
     private func pasueVideo() {
         videoPlayer?.pause()
     }
-    
+
+    @IBAction func changeRangeButtonAction(_ sender: UIButton) {
+        // you can get current video trimming start and end time by using following method
+        let start = Double(self.rangeStartTextField.text ?? "") ?? 0
+        let end = Double(self.rangeEndTextField.text ?? "") ?? Double.infinity
+
+        self.shortClipTrimmerContentView?.updateSelectedRange(CMTimeRange(
+            start: CMTime(seconds: start, preferredTimescale: CMTimeScale(30000)),
+            end: CMTime(seconds: end, preferredTimescale: CMTimeScale(30000))
+        ))
+    }
+
 }
 
 extension HomePageViewController : ShortClipVideoTrimmerContentViewDelegate {

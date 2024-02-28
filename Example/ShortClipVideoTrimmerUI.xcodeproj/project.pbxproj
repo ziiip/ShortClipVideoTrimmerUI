@@ -17,6 +17,8 @@
 		607FACDD1AFB9204008FA782 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDC1AFB9204008FA782 /* Images.xcassets */; };
 		607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDE1AFB9204008FA782 /* LaunchScreen.xib */; };
 		607FACEC1AFB9204008FA782 /* Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACEB1AFB9204008FA782 /* Tests.swift */; };
+		A107B6352B4FD6B200FC404D /* UIImageExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A107B6342B4FD6B200FC404D /* UIImageExtensions.swift */; };
+		A1C4B9032B8F0E81004A6D68 /* BinaryFloatingPointExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C4B9022B8F0E81004A6D68 /* BinaryFloatingPointExtensions.swift */; };
 		E758444E028A8A6EAAC72A46 /* Pods_ShortClipVideoTrimmerUI_Example.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A7174E7C2734C6BACE58B95 /* Pods_ShortClipVideoTrimmerUI_Example.framework */; };
 /* End PBXBuildFile section */
 
@@ -51,6 +53,8 @@
 		607FACEA1AFB9204008FA782 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		607FACEB1AFB9204008FA782 /* Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests.swift; sourceTree = "<group>"; };
 		6D3F9C2DB80393F8CAA0016D /* Pods-ShortClipVideoTrimmerUI_Example.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ShortClipVideoTrimmerUI_Example.debug.xcconfig"; path = "Target Support Files/Pods-ShortClipVideoTrimmerUI_Example/Pods-ShortClipVideoTrimmerUI_Example.debug.xcconfig"; sourceTree = "<group>"; };
+		A107B6342B4FD6B200FC404D /* UIImageExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIImageExtensions.swift; sourceTree = "<group>"; };
+		A1C4B9022B8F0E81004A6D68 /* BinaryFloatingPointExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BinaryFloatingPointExtensions.swift; sourceTree = "<group>"; };
 		A244BA835A136B47E703992E /* LICENSE */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = LICENSE; path = ../LICENSE; sourceTree = "<group>"; };
 		CB85810098ABC324BFC466B1 /* Pods-ShortClipVideoTrimmerUI_Tests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ShortClipVideoTrimmerUI_Tests.debug.xcconfig"; path = "Target Support Files/Pods-ShortClipVideoTrimmerUI_Tests/Pods-ShortClipVideoTrimmerUI_Tests.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -146,6 +150,8 @@
 			children = (
 				1B17860028DEDBB800CB8F93 /* Modules */,
 				607FACD51AFB9204008FA782 /* AppDelegate.swift */,
+				A107B6342B4FD6B200FC404D /* UIImageExtensions.swift */,
+				A1C4B9022B8F0E81004A6D68 /* BinaryFloatingPointExtensions.swift */,
 				607FACD71AFB9204008FA782 /* ViewController.swift */,
 				607FACD91AFB9204008FA782 /* Main.storyboard */,
 				607FACDC1AFB9204008FA782 /* Images.xcassets */,
@@ -370,7 +376,9 @@
 			files = (
 				607FACD81AFB9204008FA782 /* ViewController.swift in Sources */,
 				607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */,
+				A1C4B9032B8F0E81004A6D68 /* BinaryFloatingPointExtensions.swift in Sources */,
 				1B17860428DEDBDD00CB8F93 /* HomePageViewController.swift in Sources */,
+				A107B6352B4FD6B200FC404D /* UIImageExtensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
