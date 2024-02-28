@@ -187,7 +187,7 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         presenter.setupData(delayBetweenFrames: delayBetweenFrames)
         trimmingFinishTime = validMaxTrimmingDuration
         nextDestination = min(trimmingFinishTime * 3, videoLength)
-        presenter.calculateNumberOfExpectedThumbnails(videoLength: videoLength * self.trimmerScale)
+        presenter.calculateNumberOfExpectedThumbnails(videoLength: videoLength)
         presenter.addFrames(startTime: trimmingStartTime, finishTime: trimmingFinishTime)
 
         self.clampCell = validMaxTrimmingDuration >= videoLength
@@ -207,7 +207,17 @@ public  class ShortClipVideoTrimmerContentView: UIView {
             self.collectionView.reloadData()
         }
     }
-    
+
+    private func perFrameWidth() -> CGFloat {
+        guard let presenter = presenter else {
+            return 50
+        }
+
+        let trimerWidth = self.trimmerView?.frame.width ?? self.collectionView.bounds.width
+        let perFrameWidth = trimerWidth / CGFloat(presenter.numberOfFramesPerCycle)
+        return perFrameWidth
+    }
+
     
     internal func resetCollectionViewContentOffSet() {
         self.collectionView.contentOffset.x = 0.0
@@ -222,10 +232,10 @@ public  class ShortClipVideoTrimmerContentView: UIView {
     }
     
     func getWidthToSeconds(width : CGFloat, delayBetweenFrames : CGFloat)-> CGFloat {
-        guard let numberOfThumbnails = presenter?.numberOfThumbnails, let numberOfFramesPerCycle = presenter?.numberOfFramesPerCycle, numberOfThumbnails > 0 else {
+        guard let numberOfThumbnails = presenter?.numberOfThumbnails, numberOfThumbnails > 0 else {
             return 0.0
         }
-        let perFrameWidth = self.collectionView.bounds.width / CGFloat(numberOfFramesPerCycle)
+        let perFrameWidth = perFrameWidth()
         let totalFramesWidth = perFrameWidth * CGFloat(numberOfThumbnails)
         let widthRatio = width / totalFramesWidth
         let seconds = (CGFloat(numberOfThumbnails) * delayBetweenFrames * widthRatio)
@@ -294,11 +304,14 @@ extension ShortClipVideoTrimmerContentView : UICollectionViewDelegateFlowLayout 
         guard let presenter = presenter else {
             return CGSize(width: 50, height: collectionView.bounds.height)
         }
-        let trimerWidth = self.trimmerView?.frame.width ?? self.collectionView.bounds.width
-        let perFrameWidth = self.collectionView.bounds.width / CGFloat(presenter.numberOfFramesPerCycle)
+
+        let perFrameWidth = perFrameWidth()
         var width = perFrameWidth
-        if self.clampCell && perFrameWidth * CGFloat(indexPath.row + 1) > trimerWidth {
-            width = trimerWidth.truncatingRemainder(dividingBy: perFrameWidth)
+
+        let frameEndTime = presenter.delayBetweenFrames * CGFloat(indexPath.row + 1)
+        let timeOffset = frameEndTime - presenter.videoLength
+        if timeOffset > 0 {
+            width = timeOffset.truncatingRemainder(dividingBy: presenter.delayBetweenFrames) / presenter.delayBetweenFrames * perFrameWidth
         }
 
         let size = CGSize(width: width, height: collectionView.bounds.height)

@@ -71,7 +71,7 @@ class ShortClipThumbnailsPresenter {
     
     func calculateNumberOfExpectedThumbnails(videoLength : CGFloat) {
         let numberOfFrames = ceil(videoLength / delayBetweenFrames)// + 1.0
-        let maxFrames = Int((numberOfFrames))
+        let maxFrames = Int(numberOfFrames)
         numberOfThumbnails = maxFrames
     }
     
