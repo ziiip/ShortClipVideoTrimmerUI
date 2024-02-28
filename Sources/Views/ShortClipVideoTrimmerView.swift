@@ -420,18 +420,18 @@ extension ShortClipVideoTrimmerView {
         }
     }
     
-    private func updateLeftConstraint(with translation: CGPoint) {
+    public func updateLeftConstraint(with translation: CGPoint, reset: Bool = false, updateDelegate: Bool = false) {
         let maxConstraint = max(rightHandleView.frame.origin.x - minimumDistanceBetweenHandler, 0)
-        let newConstraint = min(max(0, currentTrimLeftConstraintValue + translation.x), maxConstraint)
+        let newConstraint = min(max(0, (reset ? 0 : currentTrimLeftConstraintValue) + translation.x), maxConstraint)
         trimViewLeftConstraint?.constant = newConstraint
         delegate?.didLeftHandleLeadingPositionChange(leadingConstraint: newConstraint)
     }
     
-    private func updateRightConstraint(with translation: CGPoint) {
+    public func updateRightConstraint(with translation: CGPoint, reset: Bool = false, updateDelegate: Bool = false) {
         let prevRightConstraint = trimViewRightConstraint?.constant
         var leadingConstraint = rightHandleView.frame.origin.x
         let maxConstraint = min(0, -(frame.width - leftHandleView.frame.origin.x - (1 * handlerWidth) - minimumDistanceBetweenHandler))
-        let newConstraint = max(min(0,currentTrimRightConstraintValue + translation.x), maxConstraint)
+        let newConstraint = max(min(0, (reset ? 0 : currentTrimRightConstraintValue) + translation.x), maxConstraint)
         trimViewRightConstraint?.constant = newConstraint //+ handleWidth
         if let prevRightConstraint = prevRightConstraint {
             let increased = newConstraint - prevRightConstraint

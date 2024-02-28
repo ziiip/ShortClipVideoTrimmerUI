@@ -239,7 +239,77 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         let seconds =  (width / perFrameWidth()) * delayBetweenFrames
         return seconds
     }
- 
+
+
+    public func updateSelectedRange(_ origSelectedRange: CMTimeRange) {
+
+        let selectedRange = CMTimeRange(
+            start: CMTimeMaximum(.zero, origSelectedRange.start),
+            end: CMTimeMinimum(
+                origSelectedRange.end,
+                CMTime(
+                    seconds: Double(presenter?.videoLength ?? 0),
+                    preferredTimescale: CMTimeScale(origSelectedRange.end.timescale)
+                )
+            )
+        )
+        let rangeDuration = selectedRange.duration.seconds
+
+        let validMaxTrimmingDuration = validMaxTrimmingDuration
+
+        let duration = min(rangeDuration, validMaxTrimmingDuration)
+
+        let start = selectedRange.start.seconds
+
+        var startX = positionFromSecond(start, delayBetweenFrames: delayBetweenFrames)
+
+        let rangeX = positionFromSecond(duration, delayBetweenFrames: delayBetweenFrames)
+
+        let framesWidth = collectionView.contentSize.width - self.horizonInset * 2
+
+        let validRangeX = min(framesWidth - startX, rangeX)
+
+        if validRangeX < rangeX {
+            startX += rangeX - validRangeX
+        }
+
+        let maxOffsetX = max(0, collectionView.contentSize.width - collectionView.frame.width)
+
+        let contentOffset = min(maxOffsetX ,startX)
+
+        let xToLeading = max(0 , startX - contentOffset)
+        let endX = validRangeX + xToLeading
+        let xToTrailing = max(0, (trimmerView?.bounds.width ?? 0) - endX)
+
+        let startPos = xToLeading
+        let endPos = xToTrailing
+
+        collectionView.setContentOffset(
+            CGPointMake(contentOffset, collectionView.contentOffset.y)
+            , animated: false)
+
+        trimmerView?.updateLeftConstraint(with: CGPointMake(startPos, 0), reset: true, updateDelegate: true)
+        trimmerView?.updateRightConstraint(with: CGPointMake(-endPos, 0), reset: true, updateDelegate: true)
+
+        // Trigger the thumbnail updating
+        presenter?.cancelThumnailsGenerating()
+        scrollingOrSliderDidFinished()
+        DispatchQueue.main.async {
+            self.collectionView.reloadData()
+        }
+    }
+
+    func positionFromSecond(_ seconds: CGFloat, delayBetweenFrames : CGFloat, returnRemain: Bool = false) -> CGFloat {
+        guard let numberOfThumbnails = presenter?.numberOfThumbnails, let numberOfFramesPerCycle = presenter?.numberOfFramesPerCycle, numberOfThumbnails > 0 else {
+            return 0.0
+        }
+
+        let perFrameWidth = perFrameWidth()
+        let width = (seconds / delayBetweenFrames) * perFrameWidth
+
+        return returnRemain ? self.collectionView.bounds.width - width : width
+    }
+
     
     func scrollingOrSliderDidFinished() {
         guard let presenter = presenter else {
