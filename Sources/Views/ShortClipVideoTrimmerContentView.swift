@@ -37,7 +37,6 @@ public enum ShortClipVideoTrimmerContentViewPanningTarget {
 public  class ShortClipVideoTrimmerContentView: UIView {
     
     private var horizonInset: CGFloat = 0.0
-    private var trimmerScale: CGFloat = 1.0
     private var loadingImage : UIImage?
     private var imageContentMode : UIImageView.ContentMode = .scaleToFill
     private var cellBgColor : UIColor = .purple
@@ -168,14 +167,10 @@ public  class ShortClipVideoTrimmerContentView: UIView {
             return
         }
 
-        let collectionWidth = self.collectionView.bounds.width
-        let scaling = (self.trimmerView?.frame.width ?? collectionWidth) / collectionWidth
-        self.trimmerScale = scaling
-
         resetCollectionViewContentOffSet()
         trimmingStartTime = 0.0
-        rightHandleLeadingConstraint = (trimmerView?.bounds.width ?? 0.0) / self.trimmerScale
-        leftHandleLeadingConstraint = 0.0 / self.trimmerScale
+        rightHandleLeadingConstraint = (trimmerView?.bounds.width ?? 0.0)
+        leftHandleLeadingConstraint = 0.0
         validMinTrimmingDuration = max(.zero, min(minTrimmingDuration, videoLength))
         validMaxTrimmingDuration = min(videoLength, maxTrimmingDuration)
         
@@ -227,7 +222,7 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         let leadingDistanceAsSeconds = self.getWidthToSeconds(width: leadingConstraint, delayBetweenFrames: delayBetweenFrames)
 
         let offsetX = collectionView.contentOffset.x
-        let scrollingContentOffsetAsSeconds = self.getWidthToSeconds(width: offsetX * self.trimmerScale , delayBetweenFrames: delayBetweenFrames)
+        let scrollingContentOffsetAsSeconds = self.getWidthToSeconds(width: offsetX, delayBetweenFrames: delayBetweenFrames)
         return leadingDistanceAsSeconds + scrollingContentOffsetAsSeconds
     }
     
@@ -235,10 +230,13 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         guard let numberOfThumbnails = presenter?.numberOfThumbnails, numberOfThumbnails > 0 else {
             return 0.0
         }
-        let perFrameWidth = perFrameWidth()
-        let totalFramesWidth = perFrameWidth * CGFloat(numberOfThumbnails)
-        let widthRatio = width / totalFramesWidth
-        let seconds = (CGFloat(numberOfThumbnails) * delayBetweenFrames * widthRatio)
+
+//        let perFrameWidth = perFrameWidth()
+//        let totalFramesWidth = perFrameWidth * CGFloat(numberOfThumbnails)
+//        let widthRatio = width / totalFramesWidth
+//        let seconds = (CGFloat(numberOfThumbnails) * delayBetweenFrames * widthRatio)
+
+        let seconds =  (width / perFrameWidth()) * delayBetweenFrames
         return seconds
     }
  
@@ -309,9 +307,9 @@ extension ShortClipVideoTrimmerContentView : UICollectionViewDelegateFlowLayout 
         var width = perFrameWidth
 
         let frameEndTime = presenter.delayBetweenFrames * CGFloat(indexPath.row + 1)
-        let timeOffset = frameEndTime - presenter.videoLength
-        if timeOffset > 0 {
-            width = timeOffset.truncatingRemainder(dividingBy: presenter.delayBetweenFrames) / presenter.delayBetweenFrames * perFrameWidth
+        if frameEndTime > presenter.videoLength {
+            let timeOffset = presenter.videoLength.truncatingRemainder(dividingBy: presenter.delayBetweenFrames)
+            width = (timeOffset / presenter.delayBetweenFrames) * perFrameWidth
         }
 
         let size = CGSize(width: width, height: collectionView.bounds.height)
@@ -348,7 +346,7 @@ extension ShortClipVideoTrimmerContentView : ShortClipVideoTrimmerViewDelegate {
         guard let leadingConstraint = leadingConstraint else {
             return
         }
-        self.leftHandleLeadingConstraint = leadingConstraint / self.trimmerScale
+        self.leftHandleLeadingConstraint = leadingConstraint
         delegate?.didMoveToFinishPosition(startTime: trimmingStartTime, finishTime: trimmingFinishTime)
     }
     
@@ -356,7 +354,7 @@ extension ShortClipVideoTrimmerContentView : ShortClipVideoTrimmerViewDelegate {
         guard let leadingConstraint = leadingConstraint else {
             return
         }
-        self.rightHandleLeadingConstraint = leadingConstraint / self.trimmerScale
+        self.rightHandleLeadingConstraint = leadingConstraint
         delegate?.didMoveToFinishPosition(startTime: trimmingStartTime, finishTime: trimmingFinishTime)
         
     }
