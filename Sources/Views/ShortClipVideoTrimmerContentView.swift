@@ -56,7 +56,9 @@ public  class ShortClipVideoTrimmerContentView: UIView {
 
     public var panningTarget: ShortClipVideoTrimmerContentViewPanningTarget = .none {
         didSet {
-            self.delegate?.panningTargetChanged(panningState: panningTarget)
+            if panningTarget != oldValue {
+                self.delegate?.panningTargetChanged(panningState: panningTarget)
+            }
         }
     }
 
