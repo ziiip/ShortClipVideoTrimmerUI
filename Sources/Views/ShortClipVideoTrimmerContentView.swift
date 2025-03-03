@@ -191,6 +191,11 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         presenter.addFrames(startTime: trimmingStartTime, finishTime: trimmingFinishTime)
 
         self.clampCell = validMaxTrimmingDuration >= videoLength
+
+        // if the fixed trimming duration is no nil, try trigger update of range.
+        if validFixedTrimmingDuration != nil {
+            trimmerView?.updateLeftConstraint(with: .zero)
+        }
     }
     
     private func collectionViewLayout()-> UICollectionViewLayout {
