@@ -45,6 +45,7 @@ public  class ShortClipVideoTrimmerContentView: UIView {
     private var thumbnailExpectedSize: CGSize = CGSize(width: 50, height: 50)
     private var timeScale : CMTimeScale = 600
     private var videoLength : CGFloat = 0.0
+    private var validFixedTrimmingDuration : CGFloat? = nil
     private var validMinTrimmingDuration : CGFloat = 0.0
     private var validMaxTrimmingDuration : CGFloat = 0.0
     private var clampCell: Bool = false
@@ -154,16 +155,16 @@ public  class ShortClipVideoTrimmerContentView: UIView {
     ///     - asset : A valid AVAsset
     ///     - maxTrimmingDuration : Maximum trimming duration. That means if you set maxTrimmingDuration = 10 then you can handle at most 10 seconds of consecutive frames from any part of the video. Default is 10
     ///     - numberOfFramesPerCycle : total number of frames can be shown in each circle. Default is 7
-    public func startOperation(asset : AVAsset, minTrimmingDuration: Double = 0.0, maxTrimmingDuration : Double = 10.0, numberOfFramesPerCycle : Int = 7) {
+    public func startOperation(asset : AVAsset, fixedTrimmingDuration: Double? = nil, minTrimmingDuration: Double = 0.0, maxTrimmingDuration : Double = 10.0, numberOfFramesPerCycle : Int = 7) {
         presenter = ShortClipThumbnailsPresenter(asset: asset, numberOfFramesPerCycle: numberOfFramesPerCycle)
         presenter?.delegate = self
         presenter?.removeAllFrames()
         presenter?.thumbnailExpectedSize = self.thumbnailExpectedSize
         videoLength = asset.duration.seconds
-        resetData(minTrimmingDuration: minTrimmingDuration, maxTrimmingDuration: maxTrimmingDuration)
+        resetData(fixedTrimmingDuration: fixedTrimmingDuration, minTrimmingDuration: minTrimmingDuration, maxTrimmingDuration: maxTrimmingDuration)
     }
     
-    func resetData(minTrimmingDuration : Double, maxTrimmingDuration : Double) {
+    func resetData(fixedTrimmingDuration: Double? = nil, minTrimmingDuration : Double, maxTrimmingDuration : Double) {
         presenter?.cancelThumnailsGenerating()
         guard let presenter = presenter else {
             return
@@ -173,9 +174,11 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         trimmingStartTime = 0.0
         rightHandleLeadingConstraint = (trimmerView?.bounds.width ?? 0.0)
         leftHandleLeadingConstraint = 0.0
+        validFixedTrimmingDuration = fixedTrimmingDuration != nil ? max(.zero, min(fixedTrimmingDuration!, videoLength)) : nil
         validMinTrimmingDuration = max(.zero, min(minTrimmingDuration, videoLength))
         validMaxTrimmingDuration = min(videoLength, maxTrimmingDuration)
-        
+
+        trimmerView?.updateFixedTrimScale(validFixedTrimmingDuration != nil ? validFixedTrimmingDuration!/validMaxTrimmingDuration : nil)
         trimmerView?.updateMinimumTrimScale(validMinTrimmingDuration / validMaxTrimmingDuration)
         
         presenter.removeAllFrames()
@@ -259,7 +262,9 @@ public  class ShortClipVideoTrimmerContentView: UIView {
 
         let validMaxTrimmingDuration = validMaxTrimmingDuration
 
-        let duration = min(rangeDuration, validMaxTrimmingDuration)
+        let validFixedTrimmingDuration = validFixedTrimmingDuration
+
+        let duration = min(rangeDuration, validFixedTrimmingDuration ?? validMaxTrimmingDuration)
 
         let start = selectedRange.start.seconds
 
@@ -517,7 +522,11 @@ extension ShortClipVideoTrimmerContentView {
     public func updateTrimmingAreaBorderColor(color : UIColor) {
         trimmerView?.borderColor = color
     }
-    
+
+    public func updateTrimmingAreaBgColor(color : UIColor?) {
+        trimmerView?.bgColor = color
+    }
+
     public func updateKnobColor(color : UIColor) {
         trimmerView?.knobColor = color
     }

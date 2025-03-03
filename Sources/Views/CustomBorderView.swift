@@ -27,6 +27,13 @@ class CustomBorderView: UIView  {
         }
     }
 
+    var customBgColor: UIColor? = nil {
+        didSet {
+            self.backgroundColor = customBgColor
+            setNeedsLayout()
+        }
+    }
+
     var customBorderEdges: UIRectEdge = .all {
         didSet {
             setNeedsLayout()

@@ -59,6 +59,12 @@ class ShortClipVideoTrimmerView: UIView {
         }
     }
 
+    var bgColor : UIColor? = nil {
+        didSet {
+            self.updateTrimmingAreaBgColor(color: bgColor)
+        }
+    }
+
     var trimmerRadius: CGFloat = 4.0 {
         didSet {
             if #available(iOS 11.0, *) {
@@ -114,6 +120,7 @@ class ShortClipVideoTrimmerView: UIView {
         }
     }
 
+    var fixedDistanceBetweenHandler : CGFloat?
     var minimumDistanceBetweenHandler : CGFloat =  3.0
     var horizonInset: CGFloat = 0.0
 
@@ -156,6 +163,7 @@ class ShortClipVideoTrimmerView: UIView {
         updateHandlerColor(color: handlerColor)
         updateTrimmingAreaBorderEdges(edges: borderEdges)
         updateTrimmingAreaBorderColor(color: borderColor)
+        updateTrimmingAreaBgColor(color: bgColor)
         updateTrimmingAreaBorderWidth(width: borderWidth)
         updateKnobColor(color: knobColor)
         updatePositionBarColor(color: positionBarColor)
@@ -294,6 +302,9 @@ class ShortClipVideoTrimmerView: UIView {
 }
 
 extension ShortClipVideoTrimmerView {
+    func updateFixedTrimScale(_ scale: CGFloat?) {
+        self.fixedDistanceBetweenHandler = scale != nil ? max(.zero, self.frame.width * scale!) : nil
+    }
     func updateMinimumTrimScale(_ scale: CGFloat) {
         self.minimumDistanceBetweenHandler = max(.zero, self.frame.width * scale)
     }
@@ -342,7 +353,11 @@ extension ShortClipVideoTrimmerView {
     private func updateTrimmingAreaBorderColor(color : UIColor) {
         self.trimViewBorderView.customBorderColor = color
     }
-    
+
+    private func updateTrimmingAreaBgColor(color : UIColor?) {
+        self.trimViewBorderView.customBgColor = color
+    }
+
     private func updateKnobColor(color : UIColor) {
         leftHandleKnob.backgroundColor = color
         rightHandleKnob.backgroundColor = color
@@ -421,23 +436,68 @@ extension ShortClipVideoTrimmerView {
     }
     
     public func updateLeftConstraint(with translation: CGPoint, reset: Bool = false, updateDelegate: Bool = false) {
-        let maxConstraint = max(rightHandleView.frame.origin.x - minimumDistanceBetweenHandler, 0)
-        let newConstraint = min(max(0, (reset ? 0 : currentTrimLeftConstraintValue) + translation.x), maxConstraint)
+        var newConstraint: CGFloat = 0.0
+        var newRightConstraint: CGFloat?
+
+        if let fixedDistanceBetweenHandler {
+            let minLeftConstraint: CGFloat = 0
+            let maxRightConstraint = max(0, frame.width)
+            let maxLeftConstraint = max(maxRightConstraint - fixedDistanceBetweenHandler, 0)
+
+//            let rightConstraint = trimViewRightConstraint?.constant ?? 0
+            newConstraint = min(max(0, (reset ? 0 : currentTrimLeftConstraintValue) + translation.x), maxLeftConstraint)
+
+            newRightConstraint = min(newConstraint + fixedDistanceBetweenHandler, maxRightConstraint) - frame.width
+        } else {
+            let maxConstraint = max(rightHandleView.frame.origin.x - minimumDistanceBetweenHandler, 0)
+            newConstraint = min(max(0, (reset ? 0 : currentTrimLeftConstraintValue) + translation.x), maxConstraint)
+        }
+
+        if let newRightConstraint {
+            trimViewRightConstraint?.constant = newRightConstraint
+            delegate?.didRightHandleLeadingPositionChange(leadingConstraint: frame.width + newRightConstraint)
+        }
+
         trimViewLeftConstraint?.constant = newConstraint
         delegate?.didLeftHandleLeadingPositionChange(leadingConstraint: newConstraint)
     }
     
     public func updateRightConstraint(with translation: CGPoint, reset: Bool = false, updateDelegate: Bool = false) {
-        let prevRightConstraint = trimViewRightConstraint?.constant
-        var leadingConstraint = rightHandleView.frame.origin.x
-        let maxConstraint = min(0, -(frame.width - leftHandleView.frame.origin.x - (1 * handlerWidth) - minimumDistanceBetweenHandler))
-        let newConstraint = max(min(0, (reset ? 0 : currentTrimRightConstraintValue) + translation.x), maxConstraint)
-        trimViewRightConstraint?.constant = newConstraint //+ handleWidth
-        if let prevRightConstraint = prevRightConstraint {
-            let increased = newConstraint - prevRightConstraint
-            leadingConstraint += increased
+
+        var newLeftConstraint: CGFloat?
+        var newConstraint: CGFloat = 0.0
+
+        if let fixedDistanceBetweenHandler {
+
+            let minLeftConstraint: CGFloat = 0
+//            let maxRightConstraint = max(0, frame.width)
+//            let maxLeftConstraint = max(maxRightConstraint - fixedDistanceBetweenHandler, 0)
+
+            let minConstraint = min(0, -(frame.width - minLeftConstraint - fixedDistanceBetweenHandler))
+
+            let prevRightConstraint = trimViewRightConstraint?.constant
+            var leadingConstraint = rightHandleView.frame.origin.x
+            newConstraint = max(min(0, (reset ? 0 : currentTrimRightConstraintValue) + translation.x), minConstraint)
+
+            newLeftConstraint = max(minLeftConstraint, frame.width + newConstraint - fixedDistanceBetweenHandler)
+        } else {
+            let prevRightConstraint = trimViewRightConstraint?.constant
+            var leadingConstraint = rightHandleView.frame.origin.x
+            let maxConstraint = min(0, -(frame.width - leftHandleView.frame.origin.x - (1 * handlerWidth) - minimumDistanceBetweenHandler))
+            let newConstraint = max(min(0, (reset ? 0 : currentTrimRightConstraintValue) + translation.x), maxConstraint)
+            trimViewRightConstraint?.constant = newConstraint //+ handleWidth
+            if let prevRightConstraint = prevRightConstraint {
+                let increased = newConstraint - prevRightConstraint
+                leadingConstraint += increased
+            }
         }
-        
+
+        if let newLeftConstraint {
+            trimViewLeftConstraint?.constant = newLeftConstraint
+            delegate?.didLeftHandleLeadingPositionChange(leadingConstraint: newLeftConstraint)
+        }
+
+        trimViewRightConstraint?.constant = newConstraint //+ handleWidth
         delegate?.didRightHandleLeadingPositionChange(leadingConstraint: frame.width + newConstraint)
     }
 
