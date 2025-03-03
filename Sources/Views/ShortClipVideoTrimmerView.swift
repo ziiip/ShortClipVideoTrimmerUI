@@ -484,8 +484,7 @@ extension ShortClipVideoTrimmerView {
             let prevRightConstraint = trimViewRightConstraint?.constant
             var leadingConstraint = rightHandleView.frame.origin.x
             let maxConstraint = min(0, -(frame.width - leftHandleView.frame.origin.x - (1 * handlerWidth) - minimumDistanceBetweenHandler))
-            let newConstraint = max(min(0, (reset ? 0 : currentTrimRightConstraintValue) + translation.x), maxConstraint)
-            trimViewRightConstraint?.constant = newConstraint //+ handleWidth
+            newConstraint = max(min(0, (reset ? 0 : currentTrimRightConstraintValue) + translation.x), maxConstraint)
             if let prevRightConstraint = prevRightConstraint {
                 let increased = newConstraint - prevRightConstraint
                 leadingConstraint += increased
