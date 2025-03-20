@@ -95,6 +95,8 @@ class HomePageViewController: UIViewController {
 		shortClipTrimmerContentView.updatePositionBarColor(color : UIColor.white)
 		shortClipTrimmerContentView.updateTrimmingOutsideBackgroundColor(color : UIColor.white)
 		shortClipTrimmerContentView.updateTrimmingOutsideMaskAlpha(alpha : 0.5)
+        shortClipTrimmerContentView.updateTimeLineLeftMask(color: .blue.withAlphaComponent(0.8))
+        shortClipTrimmerContentView.updateTimeLineRightMask(color: .purple.withAlphaComponent(0.8))
     }
     
     private func setupPlayer() {
@@ -106,7 +108,7 @@ class HomePageViewController: UIViewController {
         shortClipTrimmerContentView?.startOperation(
             asset: asset,
             minTrimmingDuration: 3,
-            maxTrimmingDuration: 30,
+            maxTrimmingDuration: 90,
             numberOfFramesPerCycle: numberOfFramesPerCycle
         )
         let playerItem = AVPlayerItem(asset: asset)

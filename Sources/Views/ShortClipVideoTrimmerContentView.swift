@@ -51,6 +51,9 @@ public  class ShortClipVideoTrimmerContentView: UIView {
     private var clampCell: Bool = false
     var delayBetweenFrames : CGFloat = 0.0
 
+    private var timelineLeftMaskColor: UIColor? = nil
+    private var timelineRightMaskColor: UIColor? = nil
+
     private var trimmerView : ShortClipVideoTrimmerView?
     public weak var delegate : ShortClipVideoTrimmerContentViewDelegate?
     var nextDestination : Double = 0.0
@@ -102,8 +105,35 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         collectionView.showsHorizontalScrollIndicator = false
         return collectionView
     }()
+
     
-    
+    lazy private var collectionContentLeftMaskView : UIView = {
+        let maskView = UIView()
+        maskView.backgroundColor = timelineLeftMaskColor
+        maskView.layer.zPosition = 9999
+        maskView.translatesAutoresizingMaskIntoConstraints = false
+        return maskView
+    }()
+    lazy private var collectionContentRightMaskView : UIView = {
+        let maskView = UIView()
+        maskView.backgroundColor = timelineRightMaskColor
+        maskView.layer.zPosition = 9999
+        maskView.translatesAutoresizingMaskIntoConstraints = false
+        return maskView
+    }()
+    lazy private var collectionContentLeftMaskMarkView : UIView = {
+        let maskMarkView = UIView()
+        maskMarkView.backgroundColor = .clear.withAlphaComponent(0.4)
+        maskMarkView.frame = .init(origin: .zero, size: .init(width: 0, height: 0))
+        return maskMarkView
+    }()
+    lazy private var collectionContentRightMaskMarkView : UIView = {
+        let maskMarkView = UIView()
+        maskMarkView.backgroundColor = .clear.withAlphaComponent(0.4)
+        maskMarkView.frame = .init(origin: .zero, size: .init(width: 0, height: 0))
+        return maskMarkView
+    }()
+
     override public init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
@@ -131,6 +161,7 @@ public  class ShortClipVideoTrimmerContentView: UIView {
             collectionView.bottomAnchor.constraint(equalTo: bottomAnchor),
             collectionView.rightAnchor.constraint(equalTo: rightAnchor)
         ])
+
         trimmerView = ShortClipVideoTrimmerView(frame: bounds, horizonInset: self.horizonInset)
         guard let trimmerView = trimmerView else {
             return
@@ -147,6 +178,9 @@ public  class ShortClipVideoTrimmerContentView: UIView {
             trimmerView.bottomAnchor.constraint(equalTo: bottomAnchor),
             trimmerView.rightAnchor.constraint(equalTo: rightAnchor, constant: -self.horizonInset)
         ])
+
+        layoutTimelineMasksIfNeeded(trimmerView.trimViewBorderView)
+
         layoutIfNeeded()
     }
     
@@ -210,6 +244,10 @@ public  class ShortClipVideoTrimmerContentView: UIView {
     public func reloadFrames() {
         DispatchQueue.main.async {
             self.collectionView.reloadData()
+
+            DispatchQueue.main.async { [weak self] in
+                self?.positionTimelineMaskMarks()
+            }
         }
     }
 
@@ -306,9 +344,7 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         // Trigger the thumbnail updating
         presenter?.cancelThumnailsGenerating()
         scrollingOrSliderDidFinished()
-        DispatchQueue.main.async {
-            self.collectionView.reloadData()
-        }
+        reloadFrames()
     }
 
     func positionFromSecond(_ seconds: CGFloat, delayBetweenFrames : CGFloat, returnRemain: Bool = false) -> CGFloat {
@@ -352,6 +388,79 @@ public  class ShortClipVideoTrimmerContentView: UIView {
         else {
             trimmerView?.seek(to: cmTime, startTime: trimmingStartTime, finishTime: trimmingFinishTime, delayBetweenFrames: delayBetweenFrames)
         }
+    }
+
+
+    // MARK: Masks and Marks
+
+    func layoutTimelineMasksIfNeeded(_ timelineMaskWindowView: UIView?) {
+        guard let timelineMaskWindowView else {
+            collectionContentLeftMaskView.removeFromSuperview()
+            collectionContentLeftMaskMarkView.removeFromSuperview()
+            collectionContentRightMaskView.removeFromSuperview()
+            collectionContentRightMaskMarkView.removeFromSuperview()
+            return
+        }
+
+        if let timelineLeftMaskColor {
+            collectionContentLeftMaskView.backgroundColor = timelineLeftMaskColor
+            collectionView.addSubview(collectionContentLeftMaskView)
+            collectionView.addSubview(collectionContentLeftMaskMarkView)
+
+            let leftMaskConstraint = collectionContentLeftMaskView.leftAnchor.constraint(equalTo: collectionView.leftAnchor, constant: self.horizonInset)
+            leftMaskConstraint.priority = .defaultLow - 1
+            NSLayoutConstraint.activate([
+                collectionContentLeftMaskView.topAnchor.constraint(equalTo: timelineMaskWindowView.topAnchor),
+                leftMaskConstraint,
+                collectionContentLeftMaskView.bottomAnchor.constraint(equalTo: timelineMaskWindowView.bottomAnchor),
+                collectionContentLeftMaskView.rightAnchor.constraint(equalTo: timelineMaskWindowView.leftAnchor)
+            ])
+        } else {
+            collectionContentLeftMaskView.removeFromSuperview()
+            collectionContentLeftMaskMarkView.removeFromSuperview()
+        }
+
+        if let timelineRightMaskColor {
+            collectionContentRightMaskView.backgroundColor = timelineRightMaskColor
+            collectionView.addSubview(collectionContentRightMaskView)
+            collectionView.addSubview(collectionContentRightMaskMarkView)
+
+            let rightMaskConstraint = collectionContentRightMaskView.rightAnchor.constraint(equalTo: collectionContentRightMaskMarkView.rightAnchor)
+            rightMaskConstraint.priority = .defaultLow - 1
+            NSLayoutConstraint.activate([
+                collectionContentRightMaskView.topAnchor.constraint(equalTo: timelineMaskWindowView.topAnchor),
+                collectionContentRightMaskView.leftAnchor.constraint(equalTo: timelineMaskWindowView.rightAnchor),
+                collectionContentRightMaskView.bottomAnchor.constraint(equalTo: timelineMaskWindowView.bottomAnchor),
+                rightMaskConstraint
+            ])
+        } else {
+            collectionContentRightMaskView.removeFromSuperview()
+            collectionContentRightMaskMarkView.removeFromSuperview()
+        }
+    }
+
+    func positionTimelineMaskMarks() {
+        let cells = self.collectionView.subviews
+            .filter({ $0 is ShortClipThumbnailsCollectionViewCell })
+            .sorted(by: { lhs, rhs in
+                lhs.frame.maxX < rhs.frame.maxX
+            })
+
+        let firstCell = cells.first
+        self.collectionContentLeftMaskMarkView.frame = .init(
+            x: firstCell?.frame.minX ?? self.horizonInset,
+            y: firstCell?.frame.midY ?? self.collectionView.frame.midY,
+            width: 0,
+            height: 0
+        )
+        let lastCell = cells.last
+        self.collectionContentRightMaskMarkView.frame = .init(
+            x: lastCell?.frame.maxX ?? self.collectionView.frame.width - self.horizonInset,
+            y: lastCell?.frame.midY ?? self.collectionView.frame.midY,
+            width: 0,
+            height: 0
+        )
+
     }
 }
 
@@ -459,9 +568,7 @@ extension ShortClipVideoTrimmerContentView : ShortClipVideoTrimmerViewDelegate {
     
     public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         scrollingOrSliderDidFinished()
-        DispatchQueue.main.async {
-            self.collectionView.reloadData()
-        }
+        reloadFrames()
     }
     
     func updateTrimingStartFinishTime() {
@@ -551,5 +658,14 @@ extension ShortClipVideoTrimmerContentView {
     public func configThumbnailSize(_ size: CGSize) {
         self.thumbnailExpectedSize = size
         presenter?.thumbnailExpectedSize = size
+    }
+
+    public func updateTimeLineLeftMask(color : UIColor?) {
+        timelineLeftMaskColor = color
+        layoutTimelineMasksIfNeeded(trimmerView?.trimViewBorderView)
+    }
+    public func updateTimeLineRightMask(color : UIColor?) {
+        timelineRightMaskColor = color
+        layoutTimelineMasksIfNeeded(trimmerView?.trimViewBorderView)
     }
 }

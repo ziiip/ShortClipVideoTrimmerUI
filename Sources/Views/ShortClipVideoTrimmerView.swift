@@ -19,7 +19,7 @@ class ShortClipVideoTrimmerView: UIView {
     
     // all SubViews
     private let trimView = UIView()
-    private let trimViewBorderView = CustomBorderView()
+    let trimViewBorderView = CustomBorderView()
     private let leftHandleView = HandlerView()
     private let rightHandleView = HandlerView()
     private let positionBar = UIView()
