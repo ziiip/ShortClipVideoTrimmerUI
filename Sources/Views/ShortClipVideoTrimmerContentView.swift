@@ -472,16 +472,20 @@ extension ShortClipVideoTrimmerContentView : UICollectionViewDelegate {
 
 extension ShortClipVideoTrimmerContentView : UICollectionViewDataSource {
     public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: identifier, for: indexPath) as? ShortClipThumbnailsCollectionViewCell, let presenter = presenter else {
-            return UICollectionViewCell()
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: identifier, for: indexPath)
+        guard let cell = cell as? ShortClipThumbnailsCollectionViewCell else {
+            return cell
         }
         cell.imageView.contentMode = self.imageContentMode
         cell.backgroundColor = self.cellBgColor
-        if indexPath.item < presenter.numberOfThumbnails, let visibleFrameItem = presenter.visibleVideoFrameItemsDict[indexPath.item] {
-            cell.imageView.image = visibleFrameItem.frame
-        } else {
-            cell.imageView.image = loadingImage
+        var image = loadingImage
+        if let presenter, indexPath.item < presenter.numberOfThumbnails {
+            let visibleVideoFrameItemsDict = presenter.visibleVideoFrameItemsDict // try to avoid threading issue
+            if let visibleFrameItem = visibleVideoFrameItemsDict[indexPath.item] {
+                image = visibleFrameItem.frame
+            }
         }
+        cell.imageView.image = image
         return cell
     }
     
