@@ -481,7 +481,8 @@ extension ShortClipVideoTrimmerContentView : UICollectionViewDataSource {
         var image = loadingImage
         if let presenter, indexPath.item < presenter.numberOfThumbnails {
             let visibleVideoFrameItemsDict = presenter.visibleVideoFrameItemsDict // try to avoid threading issue
-            if let visibleFrameItem = visibleVideoFrameItemsDict[indexPath.item] {
+            let index = indexPath.item
+            if visibleVideoFrameItemsDict.count > index, let visibleFrameItem = visibleVideoFrameItemsDict[index] {
                 image = visibleFrameItem.frame
             }
         }
