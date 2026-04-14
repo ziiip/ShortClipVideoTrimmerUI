@@ -37,6 +37,7 @@ class ShortClipThumbnailsPresenter {
     var imageGenerator : AVAssetImageGenerator?
     weak var delegate : ShortClipThumbnailsPresenterDelegate?
     var imageGeneratorStatus : ShortClipImageGeneratorRunningStatus = .cancel
+    private var activeGenerationID = UUID()
     init(asset : AVAsset, numberOfFramesPerCycle : Int =  8) {
         self.asset = asset
         self.numberOfFramesPerCycle = numberOfFramesPerCycle
@@ -48,6 +49,7 @@ class ShortClipThumbnailsPresenter {
     }
     
     func cancelThumnailsGenerating() {
+        activeGenerationID = UUID()
         imageGeneratorStatus = .cancel
         imageGenerator?.cancelAllCGImageGeneration()
     }
@@ -102,12 +104,17 @@ class ShortClipThumbnailsPresenter {
         guard let asset = asset else {
             return
         }
+        guard !timesForThumbnail.isEmpty else {
+            completion()
+            return
+        }
         let totalItems = timesForThumbnail.count
-        var numberOfValidThumbnailGenerated = 0
         var numberOfOperations = 0
         if let imageGenerator = imageGenerator {
             imageGenerator.cancelAllCGImageGeneration()
         }
+        let generationID = UUID()
+        activeGenerationID = generationID
         imageGenerator = AVAssetImageGenerator(asset: asset)
         imageGeneratorStatus = .running
         guard let imageGenerator = imageGenerator else {
@@ -121,40 +128,35 @@ class ShortClipThumbnailsPresenter {
         imageGenerator.maximumSize = CGSize(width: thumbnailDimension.width * deviceScale, height: thumbnailDimension.height * deviceScale)
         var previousFrame : UIImage?
         imageGenerator.generateCGImagesAsynchronously(forTimes: timesForThumbnail) { [weak self] requestedTime, cgImage, actualTime, result, error in
-            if result == .succeeded, let cgImage = cgImage, error == nil {
-                DispatchQueue.main.async(execute: { [weak self] () -> Void in
-                    if let strongSelf = self {
-                        let uiImage = UIImage(cgImage: cgImage)
-                        previousFrame = uiImage
-                        let toIndex = strongSelf.getSecondsToIndex(seconds: requestedTime.seconds, delayBetweenFrames: strongSelf.delayBetweenFrames, duration: strongSelf.videoLength)
-                        if strongSelf.visibleVideoFrameItemsDict[toIndex] == nil {
-                            strongSelf.visibleVideoFrameItemsDict.updateValue(ShortClipVisibleVideoFrameItem(frame: uiImage, requestedTime: requestedTime.seconds, index: toIndex), forKey: toIndex)
-                        }
-                        numberOfValidThumbnailGenerated += 1
-                    }
-                })
-            } else {
-                guard let strongSelf = self, strongSelf.imageGeneratorStatus == .running else {
+            DispatchQueue.main.async {
+                guard let strongSelf = self,
+                      strongSelf.imageGeneratorStatus == .running,
+                      strongSelf.activeGenerationID == generationID
+                else {
                     return
                 }
-                
+
                 let toIndex = strongSelf.getSecondsToIndex(seconds: requestedTime.seconds, delayBetweenFrames: strongSelf.delayBetweenFrames, duration: strongSelf.videoLength)
-                if let previousFrame = previousFrame {
+
+                if result == .succeeded, let cgImage = cgImage, error == nil {
+                    let uiImage = UIImage(cgImage: cgImage)
+                    previousFrame = uiImage
+                    if strongSelf.visibleVideoFrameItemsDict[toIndex] == nil {
+                        strongSelf.visibleVideoFrameItemsDict.updateValue(ShortClipVisibleVideoFrameItem(frame: uiImage, requestedTime: requestedTime.seconds, index: toIndex), forKey: toIndex)
+                    }
+                } else if let previousFrame = previousFrame {
                     if strongSelf.visibleVideoFrameItemsDict[toIndex] == nil {
                         strongSelf.visibleVideoFrameItemsDict.updateValue(ShortClipVisibleVideoFrameItem(frame: previousFrame, requestedTime: requestedTime.seconds, index: toIndex), forKey: toIndex)
                     }
-                    
-                } else { }
-                
-            }
-            numberOfOperations += 1
-            if (numberOfOperations % 7 == 0) {
-                DispatchQueue.main.async {
-                    self?.delegate?.reloadThumbnails()
                 }
-            }
-            if(numberOfOperations == totalItems) {
-                completion()
+
+                numberOfOperations += 1
+                if (numberOfOperations % 7 == 0) {
+                    strongSelf.delegate?.reloadThumbnails()
+                }
+                if(numberOfOperations == totalItems) {
+                    completion()
+                }
             }
         }
     }

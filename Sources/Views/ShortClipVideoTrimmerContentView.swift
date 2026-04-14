@@ -479,12 +479,10 @@ extension ShortClipVideoTrimmerContentView : UICollectionViewDataSource {
         cell.imageView.contentMode = self.imageContentMode
         cell.backgroundColor = self.cellBgColor
         var image = loadingImage
-        if let presenter, indexPath.item < presenter.numberOfThumbnails {
-            let visibleVideoFrameItemsDict = presenter.visibleVideoFrameItemsDict // try to avoid threading issue
-            let index = indexPath.item
-            if visibleVideoFrameItemsDict.count > index, let visibleFrameItem = visibleVideoFrameItemsDict[index] {
-                image = visibleFrameItem.frame
-            }
+        if let presenter,
+           indexPath.item < presenter.numberOfThumbnails,
+           let visibleFrameItem = presenter.visibleVideoFrameItemsDict[indexPath.item] {
+            image = visibleFrameItem.frame
         }
         cell.imageView.image = image
         return cell
